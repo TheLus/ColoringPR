@@ -1,0 +1,24 @@
+{
+    // 拡張機能の定義
+    "manifest_version": 2,  // マニフェストのバージョン ※"2"を指定
+    "name": "ColoringPR",       // 拡張機能の名称
+    "version": "0.1",       // 拡張機能のバージョン
+ 
+    "description": "githubのコミットをプルリクごとに色づけ",  // 拡張機能の概要
+ 
+    // アイコンの設定
+    //"icons": {
+    //    "16": "icons/icon.png",         // 16×16[px]アイコンファイルのパス
+    //    "48": "icons/icon.png",         // 48×48[px]アイコンファイルのパス
+    //    "128": "icons/icon.png"         // 128×128[px]アイコンファイルのパス
+    //},
+ 
+    // スクリプトの設定
+    "content_scripts": [
+        {
+            "matches": ["https://github.com/*"],  // 拡張機能を適用するURLパターン
+            "js": ["js/jquery-2.1.0.min.js", "js/coloringpr.js"]                                      // JavaScriptのパス
+        }
+    ]
+}
+
