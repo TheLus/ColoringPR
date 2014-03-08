@@ -75,13 +75,28 @@
     for (var i = 0; i < commitsLength; i++) {
       var prNum = prMap[this.getCommitId($commits[i])];
       if ((prNum + "") !== pageNum) {
-        console.log(prNum + " : " + pageNum);
+        console.log(prNum);
       }
     }
   }
 
   PRMapper.prototype.getCommitId = function (commit) {
     return commit.getAttribute("data-channel").split("commit:")[1];
+  }
+
+  function getColorCode(num) {
+    if (num > 50) {
+      return getColorCode(Math.floor(Math.random()*50));
+    }
+    var preCode = ("" + (parseInt((num%7).toString(2)) + Math.floor(num/7)*111)).split('');
+    while (preCode.length < 3) {
+      preCode.unshift('0');
+    }
+    var colorCode = "";
+    for (var i = 0; i < 3; i++) {
+      colorCode += (15 - parseInt(preCode[i], 16)*2).toString(16);
+    }
+    return "#" + colorCode;
   }
 
   function changeBGColor() {
