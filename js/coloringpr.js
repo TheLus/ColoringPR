@@ -1,5 +1,6 @@
 {
   var PULL_REQUEST = "pull";
+  var prMap = new PRMap();
 
   document.onLoad = start();
   document.onclick = start();
@@ -29,13 +30,18 @@
     var pageNum = getPageNum(url);
 
     var res = $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls/" + pageNum + "/commits", function (json) {
-      onGetJSON(json);
+      onGetJSON(json, pageNum);
     });
   }
 
-  function onGetJSON(json) {
+  function onGetJSON(json, prNum) {
     var commits = json;
     console.log(commits);
+    var commitsLength = commits.length;
+    for (var i = 0; i < commitsLength; i++) {
+      prMap.addCommit(commits[i].sha, prNum);
+    }
+    console.log(prMap);
   }
 
   function changeBGColor() {
@@ -54,4 +60,11 @@
   function getPageNum(url) {
     return url.split("/")[6];
   }
+
+  function PRMap() {
+  }
+  PRMap.prototype.addCommit = function (commitId, prId) {
+    this["" + commitId] = prId;
+  }
+
 }
