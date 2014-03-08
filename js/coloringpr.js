@@ -71,11 +71,17 @@
     var $commits = $(".commit");
     var pageNum = getPageNum(document.URL);
     var commitsLength = $commits.length;
+    var prCounter = {"undefined": 0};
 
     for (var i = 0; i < commitsLength; i++) {
       var prNum = prMap[this.getCommitId($commits[i])];
       if ((prNum + "") !== pageNum) {
-        console.log(prNum);
+        if ( !(prNum in prCounter) ) {
+          prCounter[prNum] = Object.keys(prCounter).length;
+          console.log(prCounter);
+        }
+        var colorCode = getColorCode(prCounter[prNum]);
+        $commits[i].style.background = colorCode;
       }
     }
   }
