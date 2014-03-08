@@ -4,25 +4,29 @@
   var prMap = {};
   var prMapper = new PRMapper(prMap);
 
-
   function PRMapper(prMap) {
     this.prMap = prMap;
+
+    $(this).on("update", function () {
+      console.log("prMap updated");
+      this.coloring(this.prMap);
+    });
   }
 
   PRMapper.prototype.start = function () {
-      var url = document.URL;
-      var pageType = getPageType(url);
-      var pageNum = getPageNum(url);
+    var url = document.URL;
+    var pageType = getPageType(url);
+    var pageNum = getPageNum(url);
 
-      switch(pageType) {
-        case PULL_REQUEST:
-          console.log("pull_req");
-          this.onOpenPullRequestPage(url);
-          break;
-        default :
-          console.log("default");
-          break;
-      }
+    switch(pageType) {
+      case PULL_REQUEST:
+        console.log("pull_req");
+        this.onOpenPullRequestPage(url);
+        break;
+      default :
+        console.log("default");
+        break;
+    }
   };
 
   PRMapper.prototype.onOpenPullRequestPage = function (url) {
@@ -60,9 +64,46 @@
       prMap["" + commits[i].sha] = prNum;
     }
     localStorage['prMap'] = JSON.stringify(prMap);
-    $(this).trigger("testes");
-    console.log(prMap);
+    $(this).trigger("update");
   };
+
+  PRMapper.prototype.coloring = function (prMap) {
+    var $commits = $(".commit");
+    var pageNum = getPageNum(document.URL);
+    var commitsLength = $commits.length;
+    var prCounter = {"undefined": 0};
+
+    for (var i = 0; i < commitsLength; i++) {
+      var prNum = prMap[this.getCommitId($commits[i])];
+      if ((prNum + "") !== pageNum) {
+        if ( !(prNum in prCounter) ) {
+          prCounter[prNum] = Object.keys(prCounter).length;
+          console.log(prCounter);
+        }
+        var colorCode = getColorCode(prCounter[prNum]);
+        $commits[i].style.background = colorCode;
+      }
+    }
+  }
+
+  PRMapper.prototype.getCommitId = function (commit) {
+    return commit.getAttribute("data-channel").split("commit:")[1];
+  }
+
+  function getColorCode(num) {
+    if (num > 50) {
+      return getColorCode(Math.floor(Math.random()*50));
+    }
+    var preCode = ("" + (parseInt((num%7).toString(2)) + Math.floor(num/7)*111)).split('');
+    while (preCode.length < 3) {
+      preCode.unshift('0');
+    }
+    var colorCode = "";
+    for (var i = 0; i < 3; i++) {
+      colorCode += (15 - parseInt(preCode[i], 16)*2).toString(16);
+    }
+    return "#" + colorCode;
+  }
 
   function changeBGColor() {
     console.log("changeBGColor");
