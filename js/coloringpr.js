@@ -32,7 +32,7 @@
     //var res = $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls/" + pageNum + "/commits", function (json) {
     //  onGetJSON(json, pageNum);
     //});
-    $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls", function (json) {
+    $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls?state=all", function (json) {
       onGetPRs(json, pageNum);
     });
   }
