@@ -2,7 +2,6 @@
   var PULL_REQUEST = "pull";
 
   document.onLoad = start();
-  document.onclick = start();
 
   function start() {
     setTimeout(function () {
