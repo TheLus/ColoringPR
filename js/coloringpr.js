@@ -6,6 +6,11 @@
 
   function PRMapper(prMap) {
     this.prMap = prMap;
+
+    $(this).on("update", function () {
+      console.log("prMap updated");
+      this.coloring(this.prMap);
+    });
   }
 
   PRMapper.prototype.start = function () {
@@ -59,9 +64,25 @@
       prMap["" + commits[i].sha] = prNum;
     }
     localStorage['prMap'] = JSON.stringify(prMap);
-    $(this).trigger("testes");
-    console.log(prMap);
+    $(this).trigger("update");
   };
+
+  PRMapper.prototype.coloring = function (prMap) {
+    var $commits = $(".commit");
+    var pageNum = getPageNum(document.URL);
+    var commitsLength = $commits.length;
+
+    for (var i = 0; i < commitsLength; i++) {
+      var prNum = prMap[this.getCommitId($commits[i])];
+      if ((prNum + "") !== pageNum) {
+        console.log(prNum + " : " + pageNum);
+      }
+    }
+  }
+
+  PRMapper.prototype.getCommitId = function (commit) {
+    return commit.getAttribute("data-channel").split("commit:")[1];
+  }
 
   function changeBGColor() {
     console.log("changeBGColor");
