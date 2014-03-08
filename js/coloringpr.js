@@ -24,31 +24,32 @@
   }
 
   function onOpenPullRequestPage(url) {
-    console.log("onOpenPullRequestPage");
     var usr = getUsr(url);
     var repos = getRepos(url);
     var pageNum = getPageNum(url);
+    var requestUrl = "https://api.github.com/repos/" + usr + "/" + repos + "/pulls";
 
-    //var res = $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls/" + pageNum + "/commits", function (json) {
-    //  onGetJSON(json, pageNum);
-    //});
-    $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls?state=all", function (json) {
-      onGetPRs(json, pageNum);
-    });
+    $.getJSON(requestUrl + "?state=all", $.proxy(function (json) {
+      onGetPRs(json, requestUrl, pageNum);
+    }, this));
   }
 
-  function onGetPRs(json, pageNum) {
+  function onGetPRs(json, url, pageNum) {
     var prs = json;
-    console.log(prs.length);
-    console.log(prs);
+    var prsLength = prs.length;
+    for (var i = 0; i < prsLength; i++) {
+      $.getJSON(url + "/" + (i+1), $.proxy(function (json) {
+        onGetCommits(json, pageNum);
+      }, this));
+    }
   }
 
-  function onGetJSON(json, prNum) {
+  function onGetCommits(json, prNum) {
+    console.log(json);
     var commits = json;
-    console.log(commits);
     var commitsLength = commits.length;
     for (var i = 0; i < commitsLength; i++) {
-      prMap.addCommit(commits[i].sha, prNum);
+      $.proxy(prMap.addCommit(commits[i].sha, prNum), prMap);
     }
     console.log(prMap);
   }
@@ -74,6 +75,7 @@
   }
   PRMap.prototype.addCommit = function (commitId, prId) {
     this["" + commitId] = prId;
+    console.log(this);
   }
 
 }
