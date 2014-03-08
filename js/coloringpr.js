@@ -1,6 +1,6 @@
 {
   var PULL_REQUEST = "pull";
-  var prMap = new PRMap();
+  var prMap = JSON.parse(localStorage['prMap']);
 
   document.onLoad = start();
 
@@ -45,12 +45,17 @@
     }
   }
 
-  function onGetCommits(json, prNum) {
-    var commits = json;
+  function onGetCommits(commits, prNum) {
     var commitsLength = commits.length;
+
+    if (commitsLength === prMap[prNum])
+      return;
+
+    prMap[prNum] = commitsLength;
     for (var i = 0; i < commitsLength; i++) {
-      prMap.addCommit(commits[i].sha, prNum);
+      prMap["" + commits[i].sha] = prNum;
     }
+    localStorage['prMap'] = JSON.stringify(prMap);
     console.log(prMap);
   }
 
@@ -70,11 +75,4 @@
   function getPageNum(url) {
     return url.split("/")[6];
   }
-
-  function PRMap() {
-  }
-  PRMap.prototype.addCommit = function (commitId, prId) {
-    this["" + commitId] = prId;
-  }
-
 }
