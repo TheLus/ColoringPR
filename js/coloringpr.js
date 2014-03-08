@@ -29,9 +29,18 @@
     var repos = getRepos(url);
     var pageNum = getPageNum(url);
 
-    var res = $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls/" + pageNum + "/commits", function (json) {
-      onGetJSON(json, pageNum);
+    //var res = $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls/" + pageNum + "/commits", function (json) {
+    //  onGetJSON(json, pageNum);
+    //});
+    $.getJSON("https://api.github.com/repos/" + usr + "/" + repos + "/pulls", function (json) {
+      onGetPRs(json, pageNum);
     });
+  }
+
+  function onGetPRs(json, pageNum) {
+    var prs = json;
+    console.log(prs.length);
+    console.log(prs);
   }
 
   function onGetJSON(json, prNum) {
