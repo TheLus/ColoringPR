@@ -4,25 +4,24 @@
   var prMap = {};
   var prMapper = new PRMapper(prMap);
 
-
   function PRMapper(prMap) {
     this.prMap = prMap;
   }
 
   PRMapper.prototype.start = function () {
-      var url = document.URL;
-      var pageType = getPageType(url);
-      var pageNum = getPageNum(url);
+    var url = document.URL;
+    var pageType = getPageType(url);
+    var pageNum = getPageNum(url);
 
-      switch(pageType) {
-        case PULL_REQUEST:
-          console.log("pull_req");
-          this.onOpenPullRequestPage(url);
-          break;
-        default :
-          console.log("default");
-          break;
-      }
+    switch(pageType) {
+      case PULL_REQUEST:
+        console.log("pull_req");
+        this.onOpenPullRequestPage(url);
+        break;
+      default :
+        console.log("default");
+        break;
+    }
   };
 
   PRMapper.prototype.onOpenPullRequestPage = function (url) {
