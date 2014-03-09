@@ -1,15 +1,17 @@
 {
   var PULL_REQUEST = "pull";
-  //var prMap = JSON.parse(localStorage['prMap']);
-  var prMap = {};
+  var prMap = JSON.parse(localStorage['prMap']);
+  var prMap = {}; //TODO テスト用の初期化. 最後に消す
   var prMapper = new PRMapper(prMap);
 
   function PRMapper(prMap) {
     this.prMap = prMap;
+    this.isReady = false;
 
     $(this).on("update", function () {
-      console.log("prMap updated");
-      this.coloring(this.prMap);
+      if (this.isReady) {
+        this.coloring();
+      }
     });
   }
 
@@ -22,6 +24,7 @@
       case PULL_REQUEST:
         console.log("pull_req");
         this.onOpenPullRequestPage(url);
+        this.coloring(this.prMap);
         break;
       default :
         console.log("default");
@@ -60,25 +63,27 @@
       return;
 
     prMap[prNum] = commitsLength;
+    console.log(prNum);
     for (var i = 0; i < commitsLength; i++) {
-      prMap["" + commits[i].sha] = prNum;
+      if ( !(commits[i].sha in prMap) || prMap[prNum] < prMap[prMap[commits[i].sha]] ) {
+        prMap[commits[i].sha] = prNum;
+      }
     }
     localStorage['prMap'] = JSON.stringify(prMap);
     $(this).trigger("update");
   };
 
-  PRMapper.prototype.coloring = function (prMap) {
+  PRMapper.prototype.coloring = function () {
     var $commits = $(".commit");
     var pageNum = getPageNum(document.URL);
     var commitsLength = $commits.length;
     var prCounter = {"undefined": 0};
 
     for (var i = 0; i < commitsLength; i++) {
-      var prNum = prMap[this.getCommitId($commits[i])];
+      var prNum = this.prMap[this.getCommitId($commits[i])];
       if ((prNum + "") !== pageNum) {
         if ( !(prNum in prCounter) ) {
           prCounter[prNum] = Object.keys(prCounter).length;
-          console.log(prCounter);
         }
         var colorCode = getColorCode(prCounter[prNum]);
         $commits[i].style.background = colorCode;
@@ -89,6 +94,7 @@
   PRMapper.prototype.getCommitId = function (commit) {
     return commit.getAttribute("data-channel").split("commit:")[1];
   }
+  prMapper.start();
 
   function getColorCode(num) {
     if (num > 50) {
@@ -123,6 +129,7 @@
   }
 
   $(document).ready(function () {
-    prMapper.start();
+    prMapper.isReady = true;
+    prMapper.coloring();
   });
 }
