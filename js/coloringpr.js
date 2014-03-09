@@ -87,6 +87,13 @@
         }
         var colorCode = getColorCode(prCounter[prNum]);
         $commits[i].style.background = colorCode;
+        $commits[i].title = "PR #" + prNum;
+        if ( prCounter[prNum] !== 0 ) {
+          $($commits[i]).off();
+          $($commits[i]).on("click", function () {
+            console.log("hoge");
+          });
+        }
       }
     }
   }
