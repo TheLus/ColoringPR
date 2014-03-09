@@ -3,7 +3,7 @@
   if(localStorage['githubData']) {
     var githubData = JSON.parse(localStorage['githubData']);
   } else {
-    githubData = {};
+    var githubData = {};
   }
   var prMapper = new PRMapper(githubData);
 
