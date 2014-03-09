@@ -4,6 +4,10 @@
   //var prMap = {}; //TODO テスト用の初期化. 最後に消す
   var prMapper = new PRMapper(prMap);
 
+  /**
+   * プルリクエストとコミットのマッピングを行うクラス
+   * ついでに背景色の変更なども行う
+   */
   function PRMapper(prMap) {
     this.prMap = prMap;
     this.isReady = false;
@@ -15,35 +19,47 @@
     });
   }
 
+  /**
+   * 全てのプルリクを参照し、コミットとプルリクのマップを作成する
+   * ことを開始する。
+   */
   PRMapper.prototype.start = function () {
-    var url = document.URL;
+    var url      = document.URL;
     var pageType = getPageType(url);
-    var pageNum = getPageNum(url);
+    var pageNum  = getPageNum(url);
 
     switch(pageType) {
       case PULL_REQUEST:
-        console.log("pull_req");
-        this.onOpenPullRequestPage(url);
-        this.coloring(this.prMap);
+        // 現在開いているページがプルリクエストページならば
+        // 全てのプルリクエストを参照しにいく
+        this.crawlPullRequest(url);
         break;
       default :
-        console.log("default");
         break;
     }
   };
 
-  PRMapper.prototype.onOpenPullRequestPage = function (url) {
+  /**
+   * プルリクエスト情報を得るためのURLを作成し、
+   * リクエストを投げる
+   * @param url リポジトリ情報とユーザ情報を含んだURL
+   */
+  PRMapper.prototype.crawlPullRequest = function (url) {
     var usr = getUsr(url);
     var repos = getRepos(url);
-    var pageNum = getPageNum(url);
     var requestUrl = "https://api.github.com/repos/" + usr + "/" + repos + "/pulls";
 
     $.getJSON(requestUrl + "?state=all", $.proxy(function (json) {
-      this.onGetPRs(json, requestUrl, pageNum);
+      this.onGetPRs(json, requestUrl);
     }, this));
   };
 
-  PRMapper.prototype.onGetPRs = function (prs, url, pageNum) {
+  /**
+   *
+   * @param prs プルリクエストの情報をもつJSONデータ
+   * @param url リクエストURL
+   */
+  PRMapper.prototype.onGetPRs = function (prs, url) {
     var prsLength = prs.length;
 
     for (var i = 0; i < prsLength; i++) {
