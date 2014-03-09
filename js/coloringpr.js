@@ -11,6 +11,7 @@
   function PRMapper(prMap) {
     this.prMap = prMap;
     this.isReady = false;
+    this.currentPageNum = null;
 
     $(this).on("update", function () {
       if (this.isReady) {
@@ -26,7 +27,7 @@
   PRMapper.prototype.start = function () {
     var url      = document.URL;
     var pageType = getPageType(url);
-    var pageNum  = getPageNum(url);
+    this.currentPageNum = getPageNum(url);
 
     switch(pageType) {
       case PULL_REQUEST:
@@ -104,13 +105,12 @@
    */
   PRMapper.prototype.coloring = function () {
     var $commits = $(".commit");
-    var pageNum = getPageNum(document.URL);
     var commitsLength = $commits.length;
     var prCounter = {"undefined": 0};
 
     for (var i = 0; i < commitsLength; i++) {
       var prNum = this.prMap[this.getCommitId($commits[i])];
-      if ((prNum + "") === pageNum) {
+      if ((prNum + "") === this.currentPageNum) {
         continue;
       }
 
@@ -144,17 +144,32 @@
    * コミットに分けて表示する
    */
   PRMapper.prototype.toggleView = function () {
-    var $commits = $(".commit");
-    var commitsLength = $commits.length;
+    var $commits = $(".commit[title]");
+    var commitsLength = Math.floor($commits.length/2);
+    var prCounter = {};
+    var checkId = 0;
     if (commitsLength <= 1) {
       return;
     }
 
-    if ($commits.eq(1).css('display') === "none") {
+    for (var i = 0; i < commitsLength; i++) {
+      var prNum = $commits.eq(i).attr('title').split("#")[1];
+      if ( !(prNum in prCounter) ) {
+        prCounter[prNum] = i;
+        continue;
+      }
+      checkId = i;
+    }
+    if ($commits.eq(checkId).css('display') === "none") {
       $commits.show();
     } else {
       $commits.hide();
-      $commits.eq(0).show();
+      var prNums = Object.keys(prCounter);
+      var prCounterLength = prNums.length;
+      for (var i = 0; i < prCounterLength; i++) {
+        $commits.eq(prCounter[prNums[i]]).show();
+        $commits.eq(prCounter[prNums[i]] + commitsLength + 1).show();
+      }
     }
   }
 
