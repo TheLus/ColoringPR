@@ -81,26 +81,45 @@
 
     for (var i = 0; i < commitsLength; i++) {
       var prNum = this.prMap[this.getCommitId($commits[i])];
-      if ((prNum + "") !== pageNum) {
-        if ( !(prNum in prCounter) ) {
-          prCounter[prNum] = Object.keys(prCounter).length;
-        }
-        var colorCode = getColorCode(prCounter[prNum]);
-        $commits[i].style.background = colorCode;
-        $commits[i].title = "PR #" + prNum;
-        if ( prCounter[prNum] !== 0 ) {
-          $($commits[i]).off();
-          $($commits[i]).on("click", function () {
-            console.log("hoge");
-          });
-        }
+      if ((prNum + "") === pageNum) {
+        continue;
       }
+
+      if ( !(prNum in prCounter) ) {
+        prCounter[prNum] = Object.keys(prCounter).length;
+      }
+      var colorCode = getColorCode(prCounter[prNum]);
+      $commits[i].style.background = colorCode;
+      $commits[i].title = "PR #" + prNum;
+      if ( prCounter[prNum] === 0 ) {
+        continue;
+      }
+      $($commits[i]).off("click");
+      $($commits[i]).on("click", $.proxy(function () {
+        this.toggleView();
+      }, this));
     }
   }
 
   PRMapper.prototype.getCommitId = function (commit) {
     return commit.getAttribute("data-channel").split("commit:")[1];
   }
+
+  PRMapper.prototype.toggleView = function () {
+    var $commits = $(".commit");
+    var commitsLength = $commits.length;
+    if (commitsLength <= 1) {
+      return;
+    }
+
+    if ($commits.eq(1).css('display') === "none") {
+      $commits.show();
+    } else {
+      $commits.hide();
+      $commits.eq(0).show();
+    }
+  }
+
   prMapper.start();
 
   function getColorCode(num) {
