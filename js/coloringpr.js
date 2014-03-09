@@ -1,15 +1,18 @@
 {
   var PULL_REQUEST = "pull";
-  var prMap = JSON.parse(localStorage['prMap']);
-  //var prMap = {}; //TODO テスト用の初期化. 最後に消す
-  var prMapper = new PRMapper(prMap);
+  if(localStorage['githubData']) {
+    var githubData = JSON.parse(localStorage['githubData']);
+  } else {
+    githubData = {};
+  }
+  var prMapper = new PRMapper(githubData);
 
   /**
    * プルリクエストとコミットのマッピングを行うクラス
    * ついでに背景色の変更なども行う
    */
-  function PRMapper(prMap) {
-    this.prMap = prMap;
+  function PRMapper(githubData) {
+    this.githubData = githubData;
     this.isReady = false;
     this.currentPageNum = null;
 
@@ -25,9 +28,16 @@
    * ことを開始する。
    */
   PRMapper.prototype.start = function () {
-    var url      = document.URL;
-    var pageType = getPageType(url);
+    var url             = document.URL;
+    var pageType        = getPageType(url);
+    var repos           = getRepos(url);
     this.currentPageNum = getPageNum(url);
+    if (repos in this.githubData) {
+      this.prMap = this.githubData[repos];
+    } else {
+      this.prMap = {};
+      this.githubData[repos] = this.prMap;
+    }
 
     switch(pageType) {
       case PULL_REQUEST:
@@ -83,19 +93,20 @@
   PRMapper.prototype.onGetCommits = function (commits, prNum) {
     var commitsLength = commits.length;
 
-    if (commitsLength === prMap[prNum]) {
+    if (commitsLength === this.prMap[prNum]) {
       return;
     }
-    prMap[prNum] = commitsLength;
+    this.prMap[prNum] = commitsLength;
 
     for (var i = 0; i < commitsLength; i++) {
       var commitId = commits[i].sha;
       // 新規登録 or コミット数のより少ないプルリクを優先してマッピング
-      if ( !(commitId in prMap) || prMap[prNum] < prMap[prMap[commitId]] ) {
-        prMap[commitId] = prNum;
+      if ( !(commitId in this.prMap) || this.prMap[prNum] < this.prMap[this.prMap[commitId]] ) {
+        this.prMap[commitId] = prNum;
       }
     }
-    localStorage['prMap'] = JSON.stringify(prMap);
+
+    localStorage['githubData'] = JSON.stringify(this.githubData);
     $(this).trigger("update");
   };
 
