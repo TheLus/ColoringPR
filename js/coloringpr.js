@@ -1,7 +1,7 @@
 {
   var PULL_REQUEST = "pull";
   var prMap = JSON.parse(localStorage['prMap']);
-  var prMap = {}; //TODO テスト用の初期化. 最後に消す
+  //var prMap = {}; //TODO テスト用の初期化. 最後に消す
   var prMapper = new PRMapper(prMap);
 
   function PRMapper(prMap) {
@@ -118,10 +118,6 @@
     return "#" + colorCode;
   }
 
-  function changeBGColor() {
-    console.log("changeBGColor");
-    $(".commit").css("background", "skyblue");
-  }
   function getUsr(url) {
     return url.split("/")[3];
   }
