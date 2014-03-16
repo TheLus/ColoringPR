@@ -1,5 +1,6 @@
 {
   var PULL_REQUEST = "pull";
+  var $ = jQuery;
   if(localStorage['githubData']) {
     var githubData = JSON.parse(localStorage['githubData']);
   } else {
@@ -28,13 +29,6 @@
    * ことを開始する。
    */
   PRMapper.prototype.start = function () {
-    var github = new Github({
-      username: "TheLus",
-      password: "nm39906361",
-      auth: "basic"
-    })
-    var repo = github.getRepo("TheLus", "ColoringPR");
-    console.log(repo);
     var url             = document.URL;
     var pageType        = getPageType(url);
     var repos           = getRepos(url);
@@ -83,9 +77,10 @@
       ($.proxy(function () {
         var commits_url = prs[i].commits_url;
         var prNum = commits_url.split("/")[7];
+        var prName = prs[i].title;
         $.getJSON(commits_url, $.proxy(function (json) {
           console.log(json);
-          this.onGetCommits(json, prNum);
+          this.onGetCommits(json, prNum, prName);
         }, this));
       }, this))();
     }
@@ -97,18 +92,22 @@
    * @param commits コミットの情報を持つJSONデータ
    * @param prNum プルリクエスト番号
    */
-  PRMapper.prototype.onGetCommits = function (commits, prNum) {
+  PRMapper.prototype.onGetCommits = function (commits, prNum, prName) {
     var commitsLength = commits.length;
 
-    if (commitsLength === this.prMap[prNum]) {
+    if (!this.prMap[prNum]) {
+      this.prMap[prNum] = {};
+    }
+    if (commitsLength === this.prMap[prNum].commitsLength) {
       return;
     }
-    this.prMap[prNum] = commitsLength;
+    this.prMap[prNum].commitsLength = commitsLength;
+    this.prMap[prNum].name = prName;
 
     for (var i = 0; i < commitsLength; i++) {
       var commitId = commits[i].sha;
       // 新規登録 or コミット数のより少ないプルリクを優先してマッピング
-      if ( !(commitId in this.prMap) || this.prMap[prNum] < this.prMap[this.prMap[commitId]] ) {
+      if ( !(commitId in this.prMap) || this.prMap[prNum].commitsLength < this.prMap[this.prMap[commitId]].commitsLength ) {
         this.prMap[commitId] = prNum;
       }
     }
@@ -137,10 +136,10 @@
       }
       var colorCode = getColorCode(prCounter[prNum]);
       $commits[i].style.background = colorCode;
-      $commits[i].title = "PR #" + prNum;
       if ( prCounter[prNum] === 0 ) {
         continue;
       }
+      $commits[i].title = "PR #" + prNum;
       $($commits[i]).off("click");
       $($commits[i]).on("click", $.proxy(function () {
         this.toggleView();
@@ -178,20 +177,44 @@
       }
       checkId = i;
     }
+    var prNums = Object.keys(prCounter);
+    var prCounterLength = prNums.length;
     if ($commits.eq(checkId).css('display') === "none") {
       $commits.show();
+      for (var i = 0; i < prCounterLength; i++) {
+        setCode2Commit($commits.eq(prCounter[prNums[i]]).find("code"));
+        setCode2Commit($commits.eq(prCounter[prNums[i]] + commitsLength).find("code"));
+      }
     } else {
       $commits.hide();
-      var prNums = Object.keys(prCounter);
-      var prCounterLength = prNums.length;
       for (var i = 0; i < prCounterLength; i++) {
+        var prTitle = this.prMap[prNums[i]].name;
+        var prNum = "PR #" + prNums[i];
+        var prLink = location.href.split("/pull/")[0] + "/pull/" + prNums[i];
         $commits.eq(prCounter[prNums[i]]).show();
-        $commits.eq(prCounter[prNums[i]] + commitsLength + 1).show();
+        setCode2PR($commits.eq(prCounter[prNums[i]]).find("code"), prTitle, prNum, prLink);
+        $commits.eq(prCounter[prNums[i]] + commitsLength).show();
+        setCode2PR($commits.eq(prCounter[prNums[i]] + commitsLength).find("code"), prTitle, prNum, prLink);
       }
     }
   }
 
   prMapper.start();
+
+  function setCode2Commit(code) {
+    code[0].innerHTML = code[0].tmpHTML;
+    code[1].innerHTML = code[1].tmpHTML;
+  }
+
+  function setCode2PR(code, prTitle, prNum, prLink) {
+    var atag = code.find("a");
+    code[0].tmpHTML = code[0].innerHTML;
+    code[1].tmpHTML = code[1].innerHTML;
+    atag.eq(0).text(prTitle);
+    atag.eq(1).text(prNum);
+    atag.attr("href", prLink);
+    atag.attr("target", "_brank");
+  }
 
   /**
    * いい感じにカラーコードを返す関数
