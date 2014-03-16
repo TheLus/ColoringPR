@@ -28,6 +28,13 @@
    * ことを開始する。
    */
   PRMapper.prototype.start = function () {
+    var github = new Github({
+      username: "TheLus",
+      password: "nm39906361",
+      auth: "basic"
+    })
+    var repo = github.getRepo("TheLus", "ColoringPR");
+    console.log(repo);
     var url             = document.URL;
     var pageType        = getPageType(url);
     var repos           = getRepos(url);
