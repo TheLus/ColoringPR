@@ -17,7 +17,7 @@
     "content_scripts": [
         {
             "matches": ["https://github.com/*"],  // 拡張機能を適用するURLパターン
-            "js": ["js/jquery-2.1.0.min.js", "js/coloringpr.js"]                                      // JavaScriptのパス
+            "js": ["js/lib/github.js", "js/lib/jquery-2.1.0.min.js", "js/coloringpr.js"]  // JavaScriptのパス
         }
     ]
 }

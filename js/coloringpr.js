@@ -1,12 +1,20 @@
 {
   var PULL_REQUEST = "pull";
-  var prMap = JSON.parse(localStorage['prMap']);
-  var prMap = {}; //TODO テスト用の初期化. 最後に消す
-  var prMapper = new PRMapper(prMap);
+  if(localStorage['githubData']) {
+    var githubData = JSON.parse(localStorage['githubData']);
+  } else {
+    var githubData = {};
+  }
+  var prMapper = new PRMapper(githubData);
 
-  function PRMapper(prMap) {
-    this.prMap = prMap;
+  /**
+   * プルリクエストとコミットのマッピングを行うクラス
+   * ついでに背景色の変更なども行う
+   */
+  function PRMapper(githubData) {
+    this.githubData = githubData;
     this.isReady = false;
+    this.currentPageNum = null;
 
     $(this).on("update", function () {
       if (this.isReady) {
@@ -15,94 +23,183 @@
     });
   }
 
+  /**
+   * 全てのプルリクを参照し、コミットとプルリクのマップを作成する
+   * ことを開始する。
+   */
   PRMapper.prototype.start = function () {
-    var url = document.URL;
-    var pageType = getPageType(url);
-    var pageNum = getPageNum(url);
+    var github = new Github({
+      username: "TheLus",
+      password: "nm39906361",
+      auth: "basic"
+    })
+    var repo = github.getRepo("TheLus", "ColoringPR");
+    console.log(repo);
+    var url             = document.URL;
+    var pageType        = getPageType(url);
+    var repos           = getRepos(url);
+    this.currentPageNum = getPageNum(url);
+    if (repos in this.githubData) {
+      this.prMap = this.githubData[repos];
+    } else {
+      this.prMap = {};
+      this.githubData[repos] = this.prMap;
+    }
 
     switch(pageType) {
       case PULL_REQUEST:
-        console.log("pull_req");
-        this.onOpenPullRequestPage(url);
-        this.coloring(this.prMap);
+        // 現在開いているページがプルリクエストページならば
+        // 全てのプルリクエストを参照しにいく
+        this.crawlPullRequest(url);
         break;
       default :
-        console.log("default");
         break;
     }
   };
 
-  PRMapper.prototype.onOpenPullRequestPage = function (url) {
+  /**
+   * プルリクエスト情報を得るためのURLを作成し、
+   * リクエストを投げる
+   * @param url リポジトリ情報とユーザ情報を含んだURL
+   */
+  PRMapper.prototype.crawlPullRequest = function (url) {
     var usr = getUsr(url);
     var repos = getRepos(url);
-    var pageNum = getPageNum(url);
     var requestUrl = "https://api.github.com/repos/" + usr + "/" + repos + "/pulls";
 
     $.getJSON(requestUrl + "?state=all", $.proxy(function (json) {
-      this.onGetPRs(json, requestUrl, pageNum);
+      this.onGetPRs(json);
     }, this));
   };
 
-  PRMapper.prototype.onGetPRs = function (prs, url, pageNum) {
+  /**
+   * プルリクエストの情報からコミットを取得しにいく
+   * @param prs プルリクエストの情報をもつJSONデータ
+   */
+  PRMapper.prototype.onGetPRs = function (prs) {
     var prsLength = prs.length;
 
     for (var i = 0; i < prsLength; i++) {
       ($.proxy(function () {
-        var prNum = i+1;
-        $.getJSON(url + "/" + prNum + "/commits", $.proxy(function (json) {
+        var commits_url = prs[i].commits_url;
+        var prNum = commits_url.split("/")[7];
+        $.getJSON(commits_url, $.proxy(function (json) {
+          console.log(json);
           this.onGetCommits(json, prNum);
         }, this));
       }, this))();
     }
   };
 
+  /**
+   * コミット情報とプルリク番号を受け取り
+   * マッピングする
+   * @param commits コミットの情報を持つJSONデータ
+   * @param prNum プルリクエスト番号
+   */
   PRMapper.prototype.onGetCommits = function (commits, prNum) {
     var commitsLength = commits.length;
 
-    if (commitsLength === prMap[prNum])
+    if (commitsLength === this.prMap[prNum]) {
       return;
+    }
+    this.prMap[prNum] = commitsLength;
 
-    prMap[prNum] = commitsLength;
-    console.log(prNum);
     for (var i = 0; i < commitsLength; i++) {
-      if ( !(commits[i].sha in prMap) || prMap[prNum] < prMap[prMap[commits[i].sha]] ) {
-        prMap[commits[i].sha] = prNum;
+      var commitId = commits[i].sha;
+      // 新規登録 or コミット数のより少ないプルリクを優先してマッピング
+      if ( !(commitId in this.prMap) || this.prMap[prNum] < this.prMap[this.prMap[commitId]] ) {
+        this.prMap[commitId] = prNum;
       }
     }
-    localStorage['prMap'] = JSON.stringify(prMap);
+
+    localStorage['githubData'] = JSON.stringify(this.githubData);
     $(this).trigger("update");
   };
 
+  /**
+   * コミットの背景色をプルリクごとに異なった色にする
+   * おまけでクリックしたときにプルルクごとにまとめる機能をつける
+   */
   PRMapper.prototype.coloring = function () {
     var $commits = $(".commit");
-    var pageNum = getPageNum(document.URL);
     var commitsLength = $commits.length;
     var prCounter = {"undefined": 0};
 
     for (var i = 0; i < commitsLength; i++) {
       var prNum = this.prMap[this.getCommitId($commits[i])];
-      if ((prNum + "") !== pageNum) {
-        if ( !(prNum in prCounter) ) {
-          prCounter[prNum] = Object.keys(prCounter).length;
-        }
-        var colorCode = getColorCode(prCounter[prNum]);
-        $commits[i].style.background = colorCode;
-        $commits[i].title = "PR #" + prNum;
-        if ( prCounter[prNum] !== 0 ) {
-          $($commits[i]).off();
-          $($commits[i]).on("click", function () {
-            console.log("hoge");
-          });
-        }
+      if ((prNum + "") === this.currentPageNum) {
+        continue;
+      }
+
+      if ( !(prNum in prCounter) ) {
+        prCounter[prNum] = Object.keys(prCounter).length;
+      }
+      var colorCode = getColorCode(prCounter[prNum]);
+      $commits[i].style.background = colorCode;
+      $commits[i].title = "PR #" + prNum;
+      if ( prCounter[prNum] === 0 ) {
+        continue;
+      }
+      $($commits[i]).off("click");
+      $($commits[i]).on("click", $.proxy(function () {
+        this.toggleView();
+      }, this));
+    }
+  }
+
+  /**
+   * コミットのIDを取得する
+   * @param commit commitエレメント
+   */
+  PRMapper.prototype.getCommitId = function (commit) {
+    return commit.getAttribute("data-channel").split("commit:")[1];
+  }
+
+  /**
+   * プルリクエストにまとめて表示する
+   * すでにプルリクエストにまとめて表示されていたら、
+   * コミットに分けて表示する
+   */
+  PRMapper.prototype.toggleView = function () {
+    var $commits = $(".commit[title]");
+    var commitsLength = Math.floor($commits.length/2);
+    var prCounter = {};
+    var checkId = 0;
+    if (commitsLength <= 1) {
+      return;
+    }
+
+    for (var i = 0; i < commitsLength; i++) {
+      var prNum = $commits.eq(i).attr('title').split("#")[1];
+      if ( !(prNum in prCounter) ) {
+        prCounter[prNum] = i;
+        continue;
+      }
+      checkId = i;
+    }
+    if ($commits.eq(checkId).css('display') === "none") {
+      $commits.show();
+    } else {
+      $commits.hide();
+      var prNums = Object.keys(prCounter);
+      var prCounterLength = prNums.length;
+      for (var i = 0; i < prCounterLength; i++) {
+        $commits.eq(prCounter[prNums[i]]).show();
+        $commits.eq(prCounter[prNums[i]] + commitsLength + 1).show();
       }
     }
   }
 
-  PRMapper.prototype.getCommitId = function (commit) {
-    return commit.getAttribute("data-channel").split("commit:")[1];
-  }
   prMapper.start();
 
+  /**
+   * いい感じにカラーコードを返す関数
+   * 50まではいい感じ返す、50より上はランダム
+   * ex) getColorCode(2) -> #fdf
+   *     getColorCode(7) -> #ddd
+   *     getcolorcode(8) -> #ddb
+   */
   function getColorCode(num) {
     if (num > 50) {
       return getColorCode(Math.floor(Math.random()*50));
@@ -118,10 +215,6 @@
     return "#" + colorCode;
   }
 
-  function changeBGColor() {
-    console.log("changeBGColor");
-    $(".commit").css("background", "skyblue");
-  }
   function getUsr(url) {
     return url.split("/")[3];
   }
